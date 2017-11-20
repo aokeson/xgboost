@@ -1,0 +1,2 @@
+/usr/bin/ar qc libdmlccore.a  CMakeFiles/dmlccore.dir/src/data.cc.o CMakeFiles/dmlccore.dir/src/recordio.cc.o CMakeFiles/dmlccore.dir/src/io.cc.o CMakeFiles/dmlccore.dir/src/config.cc.o CMakeFiles/dmlccore.dir/src/io/line_split.cc.o CMakeFiles/dmlccore.dir/src/io/recordio_split.cc.o CMakeFiles/dmlccore.dir/src/io/input_split_base.cc.o CMakeFiles/dmlccore.dir/src/io/local_filesys.cc.o
+/usr/bin/ranlib libdmlccore.a

@@ -1,0 +1,11 @@
+/home/amokeson/xgboost/build/CMakeFiles/edit_cache.dir
+/home/amokeson/xgboost/build/CMakeFiles/rebuild_cache.dir
+/home/amokeson/xgboost/build/CMakeFiles/xgboost.dir
+/home/amokeson/xgboost/build/CMakeFiles/rabit.dir
+/home/amokeson/xgboost/build/CMakeFiles/runxgboost.dir
+/home/amokeson/xgboost/build/CMakeFiles/gpuxgboost.dir
+/home/amokeson/xgboost/build/CMakeFiles/objxgboost.dir
+/home/amokeson/xgboost/build/dmlc-core/CMakeFiles/rebuild_cache.dir
+/home/amokeson/xgboost/build/dmlc-core/CMakeFiles/edit_cache.dir
+/home/amokeson/xgboost/build/dmlc-core/CMakeFiles/dmlccore_lint.dir
+/home/amokeson/xgboost/build/dmlc-core/CMakeFiles/dmlccore.dir

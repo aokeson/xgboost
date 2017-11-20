@@ -1,0 +1,2 @@
+/usr/bin/ar qc libgpuxgboost.a  CMakeFiles/gpuxgboost.dir/src/predictor/gpuxgboost_generated_gpu_predictor.cu.o CMakeFiles/gpuxgboost.dir/src/tree/gpuxgboost_generated_updater_gpu_hist_experimental.cu.o CMakeFiles/gpuxgboost.dir/src/tree/gpuxgboost_generated_updater_gpu_hist.cu.o CMakeFiles/gpuxgboost.dir/src/tree/gpuxgboost_generated_updater_gpu.cu.o
+/usr/bin/ranlib libgpuxgboost.a
