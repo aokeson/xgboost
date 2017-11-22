@@ -325,7 +325,7 @@ struct EvalCox : public Metric {
     bst_float out = 0;
     for (bst_omp_uint i = 0; i < ndata; ++i) {
       if (info.labels[i] > 0) {
-        out -= preds[i] - exp_p_sum;
+        out -= log(preds[i]) - log(exp_p_sum);
       }
       exp_p_sum -= preds[i];
     }
