@@ -317,12 +317,14 @@ struct EvalCox : public Metric {
     const bst_omp_uint ndata = static_cast<bst_omp_uint>(info.labels.size());
 
     // pre-compute a sum
-    bst_float exp_p_sum = 0;
+    //bst_float exp_p_sum = 0;
+    double exp_p_sum = 0;
     for (omp_ulong i = 0; i < ndata; ++i) {
       exp_p_sum += preds[i];
     }
 
-    bst_float out = 0;
+    //bst_float out = 0;
+   double out = 0;
     for (bst_omp_uint i = 0; i < ndata; ++i) {
       if (info.labels[i] > 0) {
         out -= log(preds[i]) - log(exp_p_sum);
