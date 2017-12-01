@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <utility>
 #include "../common/math.h"
+#include <iostream>
+using namespace std;
 
 namespace xgboost {
 namespace obj {
