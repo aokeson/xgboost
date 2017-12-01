@@ -243,7 +243,7 @@ class CoxRegression : public ObjFunction {
     for (omp_ulong i = 0; i < ndata; ++i) {
       exp_p_sum += std::exp(preds[i]);
     }
-    (if (exp_p_sum>1000000)) << "large exp_p_sum";
+    (exp_p_sum>1000000) << "large exp_p_sum";
 
     // start calculating grad and hess
     bst_float r_k = 0;
