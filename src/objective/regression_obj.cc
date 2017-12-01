@@ -274,7 +274,7 @@ class CoxRegression : public ObjFunction {
 
       //const bst_float grad = exp_p*r_k - static_cast<bst_float>(y > 0);
       //const bst_float hess = exp_p*r_k - exp_p*exp_p * s_k;
-      const double grad = exp_p*r_k - static_cast<bst_float>(y > 0);
+      const double grad = exp_p*r_k - static_cast<double>(y > 0);
       const double hess = exp_p*r_k - exp_p*exp_p * s_k;
 
       if (std::abs(y) >= last_abs_y) {
