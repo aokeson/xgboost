@@ -332,7 +332,7 @@ struct EvalCox : public Metric {
       exp_p_sum -= preds[i];
     }
 
-    return out;
+    return out/static_cast<double>(info.labels.size());
   }
 
   const char* Name() const override {
