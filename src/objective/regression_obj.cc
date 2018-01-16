@@ -334,65 +334,37 @@ class CoxBreslowRegression : public ObjFunction {
     const omp_ulong ndata = static_cast<omp_ulong>(preds.size()); // NOLINT(*)
 
     // pre-compute a sum
-    //bst_float exp_p_sum = 0;
     double exp_p_sum = 0;
     for (omp_ulong i = 0; i < ndata; ++i) {
       exp_p_sum += std::exp(preds[i]);
     }
 
     // start calculating grad and hess
-    //bst_float r_k = 0;
-    //bst_float s_k = 0;
-    //bst_float r_k_tied = 0;
-    //bst_float s_k_tied = 0;
-    //bst_float last_exp_p = 0.0;
-    //bst_float last_abs_y = 0.0;
     double r_k = 0;
     double s_k = 0;
-    double r_k_tied = 0;
-    double s_k_tied = 0;
+    double accumulated_sum = 0;
     double last_exp_p = 0.0;
     double last_abs_y = 0.0;
-    omp_ulong fail_next = 0;
     for (omp_ulong i = 0; i < ndata; ++i) { // NOLINT(*)
-      exp_p_sum -= last_exp_p;
 
-      //const bst_float p = preds[i];
-      //const bst_float exp_p = std::exp(p);
-      //const bst_float w = info.GetWeight(i);
-      //const bst_float y = info.labels[i];
       const double p = preds[i];
       const double exp_p = std::exp(p);
       const double w = info.GetWeight(i);
       const double y = info.labels[i];
+      
+      accumulated_sum += last_exp_p;
+      if (last_abs_y < std::abs(y)) {
+        exp_p_sum -= accumulated_sum;
+        accumulated_sum = 0;
+      }
 
       if (y > 0) {
-        r_k_tied += 1.0/exp_p_sum;
-        s_k_tied += 1.0/(exp_p_sum*exp_p_sum);
+        r_k += 1.0/exp_p_sum;
+        s_k += 1.0/(exp_p_sum*exp_p_sum);
       }
       
-      if (std::abs(y) != last_abs_y) {
-        r_k += r_k_tied;
-        r_k_tied = 0;
-        s_k += s_k_tied;
-        s_k_tied = 0;
-      }
-      
-      if (std::abs(y) > last_abs_y) {
-        fail_next = 0;
-        omp_ulong j = i;
-        while (j < ndata && std::abs(info.labels[j]) == std::abs(y)) {
-          if (info.labels[j] > 0) {
-            fail_next += 1;
-          }
-          j++;
-        }
-      }
-      
-      //const bst_float grad = exp_p*r_k - static_cast<bst_float>(y > 0);
-      //const bst_float hess = exp_p*r_k - exp_p*exp_p * s_k;
-      const double grad = fail_next*exp_p*r_k - static_cast<double>(y > 0);
-      const double hess = fail_next*(exp_p*r_k - exp_p*exp_p * s_k);
+      const double grad = exp_p*r_k - static_cast<double>(y > 0);
+      const double hess = exp_p*r_k - exp_p*exp_p * s_k;
 
       if (std::abs(y) >= last_abs_y) {
         out_gpair->at(i) = bst_gpair(grad * w, hess * w);
@@ -421,7 +393,7 @@ class CoxBreslowRegression : public ObjFunction {
     return std::log(base_score);
   }
   const char* DefaultEvalMetric(void) const override {
-    return "cox-nloglik";
+    return "coxbreslow-nloglik";
   }
 };
 
