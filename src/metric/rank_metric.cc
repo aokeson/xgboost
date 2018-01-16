@@ -339,6 +339,45 @@ struct EvalCox : public Metric {
     return "cox-nloglik";
   }
 };
+ 
+/*! \brief Cox: Partial likelihood of the Cox proportioanl hazards model */
+struct EvalCoxBreslow : public Metric {
+ public:
+  explicit EvalCoxBreslow() {}
+  bst_float Eval(const std::vector<bst_float> &preds,
+                 const MetaInfo &info,
+                 bool distributed) const override {
+    CHECK(!distributed) << "Cox metric does not support distributed evaluation";
+    using namespace std;  // NOLINT(*)
+
+    const bst_omp_uint ndata = static_cast<bst_omp_uint>(info.labels.size());
+
+    // pre-compute a sum
+    double exp_p_sum = 0;
+    for (omp_ulong i = 0; i < ndata; ++i) {
+      exp_p_sum += preds[i];
+    }
+
+   double accumulated_sum = 0;
+   double out = 0;
+    for (bst_omp_uint i = 0; i < ndata; ++i) {
+      if (info.labels[i] > 0) {
+        out -= log(preds[i]) - log(exp_p_sum);
+      }
+      accumulated_sum += preds[i];
+      if (i == ndata-1 || std::abs(info.labels[i]) < std::abs(info.labels[i+1])) {
+        exp_p_sum -= accumulated_sum;
+        accumulated_sum = 0;
+      }
+    }
+
+    return out/static_cast<double>(info.labels.size());
+  }
+
+  const char* Name() const override {
+    return "coxbreslow-nloglik";
+  }
+};
 
 XGBOOST_REGISTER_METRIC(AMS, "ams")
 .describe("AMS metric for higgs.")
@@ -363,5 +402,9 @@ XGBOOST_REGISTER_METRIC(MAP, "map")
 XGBOOST_REGISTER_METRIC(Cox, "cox-nloglik")
 .describe("Negative log partial likelihood of Cox proportioanl hazards model.")
 .set_body([](const char* param) { return new EvalCox(); });
+ 
+ XGBOOST_REGISTER_METRIC(CoxBreslow, "coxbreslow-nloglik")
+.describe("Negative log partial likelihood of Cox proportioanl hazards model with Breslow approximation.")
+.set_body([](const char* param) { return new EvalCoxBreslow(); });
 }  // namespace metric
 }  // namespace xgboost
