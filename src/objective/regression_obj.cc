@@ -312,6 +312,123 @@ class CoxRegression : public ObjFunction {
 XGBOOST_REGISTER_OBJECTIVE(CoxRegression, "survival:cox")
 .describe("Cox regression for censored survival data (negative labels are considered censored).")
 .set_body([]() { return new CoxRegression(); });
+  
+// cox regression with Breslow approximation for survival data (negative values mean they are censored)
+class CoxBreslowRegression : public ObjFunction {
+ public:
+  // declare functions
+  void Configure(const std::vector<std::pair<std::string, std::string> >& args) override {
+
+  }
+  void GetGradient(const std::vector<bst_float> &preds,
+                   const MetaInfo &info,
+                   int iter,
+                   std::vector<bst_gpair> *out_gpair) override {
+    CHECK_NE(info.labels.size(), 0U) << "label set cannot be empty";
+    CHECK_EQ(preds.size(), info.labels.size()) << "labels are not correctly provided";
+    out_gpair->resize(preds.size());
+
+    // check if labels are sorted by absolute value
+    bool label_correct = true;
+    // start calculating gradient
+    const omp_ulong ndata = static_cast<omp_ulong>(preds.size()); // NOLINT(*)
+
+    // pre-compute a sum
+    //bst_float exp_p_sum = 0;
+    double exp_p_sum = 0;
+    for (omp_ulong i = 0; i < ndata; ++i) {
+      exp_p_sum += std::exp(preds[i]);
+    }
+
+    // start calculating grad and hess
+    //bst_float r_k = 0;
+    //bst_float s_k = 0;
+    //bst_float r_k_tied = 0;
+    //bst_float s_k_tied = 0;
+    //bst_float last_exp_p = 0.0;
+    //bst_float last_abs_y = 0.0;
+    double r_k = 0;
+    double s_k = 0;
+    double r_k_tied = 0;
+    double s_k_tied = 0;
+    double last_exp_p = 0.0;
+    double last_abs_y = 0.0;
+    omp_ulong fail_next = 0;
+    for (omp_ulong i = 0; i < ndata; ++i) { // NOLINT(*)
+      exp_p_sum -= last_exp_p;
+
+      //const bst_float p = preds[i];
+      //const bst_float exp_p = std::exp(p);
+      //const bst_float w = info.GetWeight(i);
+      //const bst_float y = info.labels[i];
+      const double p = preds[i];
+      const double exp_p = std::exp(p);
+      const double w = info.GetWeight(i);
+      const double y = info.labels[i];
+
+      if (y > 0) {
+        r_k_tied += 1.0/exp_p_sum;
+        s_k_tied += 1.0/(exp_p_sum*exp_p_sum);
+      }
+      
+      if (std::abs(y) != last_abs_y) {
+        r_k += r_k_tied;
+        r_k_tied = 0;
+        s_k += s_k_tied;
+        s_k_tied = 0;
+      }
+      
+      if (std::abs(y) > last_abs_y) {
+        fail_next = 0;
+        omp_ulong j = i;
+        while (j < ndata && std::abs(info.labels[j]) == std::abs(y)) {
+          if (info.labels[j] > 0) {
+            fail_next += 1;
+          }
+          j++;
+        }
+      }
+      
+      //const bst_float grad = exp_p*r_k - static_cast<bst_float>(y > 0);
+      //const bst_float hess = exp_p*r_k - exp_p*exp_p * s_k;
+      const double grad = (fail_next*exp_p*r_k - static_cast<double>(y > 0))/info.labels.size();
+      const double hess = (fail_next*(exp_p*r_k - exp_p*exp_p * s_k))/info.labels.size();
+
+      if (std::abs(y) >= last_abs_y) {
+        out_gpair->at(i) = bst_gpair(grad * w, hess * w);
+      } else {
+        label_correct = false;
+        break;
+      }
+
+      last_abs_y = std::abs(y);
+      last_exp_p = exp_p;
+    }
+    CHECK(label_correct) << "CoxBreslowRegression: labels must be in sorted order";
+  }
+  void PredTransform(std::vector<bst_float> *io_preds) override {
+    std::vector<bst_float> &preds = *io_preds;
+    const long ndata = static_cast<long>(preds.size()); // NOLINT(*)
+    #pragma omp parallel for schedule(static)
+    for (long j = 0; j < ndata; ++j) {  // NOLINT(*)
+      preds[j] = std::exp(preds[j]);
+    }
+  }
+  void EvalTransform(std::vector<bst_float> *io_preds) override {
+    PredTransform(io_preds);
+  }
+  bst_float ProbToMargin(bst_float base_score) const override {
+    return std::log(base_score);
+  }
+  const char* DefaultEvalMetric(void) const override {
+    return "cox-nloglik";
+  }
+};
+
+// register the objective function
+XGBOOST_REGISTER_OBJECTIVE(CoxBreslowRegression, "survival:coxbreslow")
+.describe("Cox regression with Breslow approximation for censored survival data (negative labels are considered censored).")
+.set_body([]() { return new CoxBreslowRegression(); });
 
 // gamma regression
 class GammaRegression : public ObjFunction {
