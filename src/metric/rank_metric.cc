@@ -304,7 +304,7 @@ struct EvalMAP : public EvalRankList {
   }
 };
 
-/*! \brief Cox: Partial likelihood of the Cox proportioanl hazards model */
+/*! \brief Cox: Partial likelihood of the Cox proportional hazards model */
 struct EvalCox : public Metric {
  public:
   explicit EvalCox() {}
@@ -325,14 +325,16 @@ struct EvalCox : public Metric {
 
     //bst_float out = 0;
    double out = 0;
+   bst_omp_uint num_events = 0;
     for (bst_omp_uint i = 0; i < ndata; ++i) {
       if (info.labels[i] > 0) {
         out -= log(preds[i]) - log(exp_p_sum);
+        ++num_events;
       }
       exp_p_sum -= preds[i];
     }
 
-    return out/static_cast<double>(info.labels.size());
+    return out/num_events;
   }
 
   const char* Name() const override {
@@ -340,7 +342,7 @@ struct EvalCox : public Metric {
   }
 };
  
-/*! \brief Cox: Partial likelihood of the Cox proportioanl hazards model */
+/*! \brief Cox: Partial likelihood of the Cox proportional hazards model */
 struct EvalCoxBreslow : public Metric {
  public:
   explicit EvalCoxBreslow() {}
@@ -360,9 +362,11 @@ struct EvalCoxBreslow : public Metric {
 
    double accumulated_sum = 0;
    double out = 0;
+   bst_omp_uint num_events = 0;
     for (bst_omp_uint i = 0; i < ndata; ++i) {
       if (info.labels[i] > 0) {
         out -= log(preds[i]) - log(exp_p_sum);
+        ++num_events;
       }
       accumulated_sum += preds[i];
       if (i == ndata-1 || std::abs(info.labels[i]) < std::abs(info.labels[i+1])) {
@@ -371,11 +375,52 @@ struct EvalCoxBreslow : public Metric {
       }
     }
 
-    return out/static_cast<double>(info.labels.size());
+    return out/num_events;
   }
 
   const char* Name() const override {
     return "coxbreslow-nloglik";
+  }
+};
+ 
+/*! \brief Cox: Partial likelihood of the Cox proportional hazards model */
+struct EvalCoxEfron : public Metric {
+ public:
+  explicit EvalCoxEfron() {}
+  bst_float Eval(const std::vector<bst_float> &preds,
+                 const MetaInfo &info,
+                 bool distributed) const override {
+    CHECK(!distributed) << "Cox metric does not support distributed evaluation";
+    using namespace std;  // NOLINT(*)
+
+    const bst_omp_uint ndata = static_cast<bst_omp_uint>(info.labels.size());
+
+    // pre-compute a sum
+    double exp_p_sum = 0;
+    for (omp_ulong i = 0; i < ndata; ++i) {
+      exp_p_sum += preds[i];
+    }
+
+   double accumulated_sum = 0;
+   double out = 0;
+   bst_omp_uint num_events = 0;
+    for (bst_omp_uint i = 0; i < ndata; ++i) {
+      if (info.labels[i] > 0) {
+        out -= log(preds[i]) - log(exp_p_sum);
+        ++num_events;
+      }
+      accumulated_sum += preds[i];
+      if (i == ndata-1 || std::abs(info.labels[i]) < std::abs(info.labels[i+1])) {
+        exp_p_sum -= accumulated_sum;
+        accumulated_sum = 0;
+      }
+    }
+
+    return out/num_events;
+  }
+
+  const char* Name() const override {
+    return "coxefron-nloglik";
   }
 };
 
@@ -406,5 +451,9 @@ XGBOOST_REGISTER_METRIC(Cox, "cox-nloglik")
  XGBOOST_REGISTER_METRIC(CoxBreslow, "coxbreslow-nloglik")
 .describe("Negative log partial likelihood of Cox proportioanl hazards model with Breslow approximation.")
 .set_body([](const char* param) { return new EvalCoxBreslow(); });
+ 
+XGBOOST_REGISTER_METRIC(CoxEfron, "coxefron-nloglik")
+.describe("Negative log partial likelihood of Cox proportioanl hazards model with Efron approximation.")
+.set_body([](const char* param) { return new EvalCoxEfron(); });
 }  // namespace metric
 }  // namespace xgboost
