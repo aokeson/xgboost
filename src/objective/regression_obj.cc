@@ -398,9 +398,114 @@ class CoxBreslowRegression : public ObjFunction {
 };
 
 // register the objective function
-XGBOOST_REGISTER_OBJECTIVE(CoxBreslowRegression, "survival:coxbreslow")
-.describe("Cox regression with Breslow approximation for censored survival data (negative labels are considered censored).")
-.set_body([]() { return new CoxBreslowRegression(); });
+XGBOOST_REGISTER_OBJECTIVE(CoxEfronRegression, "survival:coxefron")
+.describe("Cox regression with Efron approximation for censored survival data (negative labels are considered censored).")
+.set_body([]() { return new CoxEfronRegression(); });
+  
+// cox regression with Breslow approximation for survival data (negative values mean they are censored)
+class CoxEfronRegression : public ObjFunction {
+ public:
+  // declare functions
+  void Configure(const std::vector<std::pair<std::string, std::string> >& args) override {
+
+  }
+  void GetGradient(const std::vector<bst_float> &preds,
+                   const MetaInfo &info,
+                   int iter,
+                   std::vector<bst_gpair> *out_gpair) override {
+    CHECK_NE(info.labels.size(), 0U) << "label set cannot be empty";
+    CHECK_EQ(preds.size(), info.labels.size()) << "labels are not correctly provided";
+    out_gpair->resize(preds.size());
+
+    // check if labels are sorted by absolute value
+    bool label_correct = true;
+    // start calculating gradient
+    const omp_ulong ndata = static_cast<omp_ulong>(preds.size()); // NOLINT(*)
+
+    // pre-compute a sum
+    double exp_p_sum = 0;
+    for (omp_ulong i = 0; i < ndata; ++i) {
+      exp_p_sum += std::exp(preds[i]);
+    }
+
+    // start calculating grad and hess
+    double r_k = 0;
+    double s_k = 0;
+    double accumulated_sum = 0;
+    double accumulated_failures_sum = 0;
+    double accumulated_failures = 0;
+    double accumulated_times = 1;
+    double last_exp_p = 0.0;
+    double last_y = 0.0;
+    double last_abs_y = 0.0;
+    double denom = 0;
+    double coeff = 0;
+    for (omp_ulong i = 0; i < ndata; ++i) { // NOLINT(*)
+
+      const double p = preds[i];
+      const double exp_p = std::exp(p);
+      const double w = info.GetWeight(i);
+      const double y = info.labels[i];
+      
+      accumulated_sum += last_exp_p;
+      if (last_y > 0) {
+        accumulated_failures_sum += last_exp_p;
+        accumulated_failures += 1;
+      }
+      if (last_abs_y < std::abs(y)) {
+        exp_p_sum -= accumulated_sum;
+        accumulated_sum = 0;
+        accumulated_failures_sum = 0;
+        accumulated_failures = 0;
+        accumulated_times += 1;
+      }
+
+      coeff = (accumulated_times-1)/accumulated_failures
+      if (y > 0) {
+        denom = exp_p_sum-(coeff*accumulated_failures_sum);
+        r_k += 1.0/denom;
+        s_k += 1.0/(denom*denom);
+      }
+      
+      const double grad = (1-coeff)*exp_p*r_k - static_cast<double>(y > 0);
+      const double hess = (1-coeff)*exp_p*r_k - (1-coeff)*(1-coeff)*exp_p*exp_p * s_k;
+
+      if (std::abs(y) >= last_abs_y) {
+        out_gpair->at(i) = bst_gpair(grad * w, hess * w);
+      } else {
+        label_correct = false;
+        break;
+      }
+
+      last_y = y;
+      last_abs_y = std::abs(y);
+      last_exp_p = exp_p;
+    }
+    CHECK(label_correct) << "CoxEfronRegression: labels must be in sorted order";
+  }
+  void PredTransform(std::vector<bst_float> *io_preds) override {
+    std::vector<bst_float> &preds = *io_preds;
+    const long ndata = static_cast<long>(preds.size()); // NOLINT(*)
+    #pragma omp parallel for schedule(static)
+    for (long j = 0; j < ndata; ++j) {  // NOLINT(*)
+      preds[j] = std::exp(preds[j]);
+    }
+  }
+  void EvalTransform(std::vector<bst_float> *io_preds) override {
+    PredTransform(io_preds);
+  }
+  bst_float ProbToMargin(bst_float base_score) const override {
+    return std::log(base_score);
+  }
+  const char* DefaultEvalMetric(void) const override {
+    return "coxefron-nloglik";
+  }
+};
+
+// register the objective function
+XGBOOST_REGISTER_OBJECTIVE(CoxEfronRegression, "survival:coxefron")
+.describe("Cox regression with Efron approximation for censored survival data (negative labels are considered censored).")
+.set_body([]() { return new CoxEfronRegression(); });
 
 // gamma regression
 class GammaRegression : public ObjFunction {
