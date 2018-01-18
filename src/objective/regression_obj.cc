@@ -457,6 +457,13 @@ class CoxEfronRegression : public ObjFunction {
         accumulated_sum = 0;
         accumulated_failures_sum = 0;
         accumulated_failures = 0;
+        omp_ulong j = i;
+        while (j<ndata && std::abs(y)==std::abs(info.labels[j])) {
+          if (info.labels[j]>0) {
+            ++accumulated_failures;
+          }
+          ++j;
+        }
         accumulated_times += 1;
       }
 
