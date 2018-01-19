@@ -398,11 +398,11 @@ class CoxBreslowRegression : public ObjFunction {
 };
 
 // register the objective function
-XGBOOST_REGISTER_OBJECTIVE(CoxEfronRegression, "survival:coxefron")
-.describe("Cox regression with Efron approximation for censored survival data (negative labels are considered censored).")
-.set_body([]() { return new CoxEfronRegression(); });
+XGBOOST_REGISTER_OBJECTIVE(CoxBreslowRegression, "survival:coxbreslow")
+.describe("Cox regression with Breslow approximation for censored survival data (negative labels are considered censored).")
+.set_body([]() { return new CoxBreslowRegression(); });
   
-// cox regression with Breslow approximation for survival data (negative values mean they are censored)
+// cox regression with Efron approximation for survival data (negative values mean they are censored)
 class CoxEfronRegression : public ObjFunction {
  public:
   // declare functions
