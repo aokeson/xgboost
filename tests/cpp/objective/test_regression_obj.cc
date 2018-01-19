@@ -184,3 +184,15 @@ TEST(Objective, CoxBreslowRegressionGPair) {
                    { 0,    0,    0, -0.799f, -0.788f, -0.590f, 0.910f,  1.006f},
                    { 0,    0,    0,  0.160f,  0.186f,  0.348f, 0.610f,  0.639f});
 }
+
+TEST(Objective, CoxEfronRegressionGPair) {
+  xgboost::ObjFunction * obj = xgboost::ObjFunction::Create("survival:coxefron");
+  std::vector<std::pair<std::string, std::string> > args;
+  obj->Configure(args);
+  CheckObjFunction(obj,
+                   { 0, 0.1f, 0.9f,       1,       0,    0.1f,   0.9f,       1},
+                   { 0,   -2,   -2,       2,       3,       5,    -10,     100},
+                   { 1,    1,    1,       1,       1,       1,      1,       1},
+                   { 0,    0,    0, -1.334f, -0.739f, -0.536f, 1.031f,  1.140f},
+                   { 0,    0,    0, -0.446f,  0.226f,  0.391f, 0.672f,  0.701f});
+}
