@@ -438,7 +438,6 @@ class CoxEfronRegression : public ObjFunction {
     double last_exp_p = 0.0;
     double last_y = 0.0;
     double last_abs_y = 0.0;
-    double denom = 0;
     double coeff = 0;
     for (omp_ulong i = 0; i < ndata; ++i) { // NOLINT(*)
 
@@ -467,9 +466,9 @@ class CoxEfronRegression : public ObjFunction {
         accumulated_times += 1;
       }
 
-      coeff = (accumulated_times-1)/accumulated_failures
+      coeff = (accumulated_times-1)/accumulated_failures;
       if (y > 0) {
-        denom = exp_p_sum-(coeff*accumulated_failures_sum);
+        double denom = exp_p_sum-(coeff*accumulated_failures_sum);
         r_k += 1.0/denom;
         s_k += 1.0/(denom*denom);
       }
