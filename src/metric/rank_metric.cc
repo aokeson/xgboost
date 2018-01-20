@@ -409,19 +409,7 @@ struct EvalCoxEfron : public Metric {
     bst_omp_uint num_events = 0;
     for (bst_omp_uint i = 0; i < ndata; ++i) {
       
-
-      if (info.labels[i] > 0) {
-        out -= log(preds[i]) - log(exp_p_sum-((accumulated_times-1)/accumulated_failures)*accumulated_failures_sum);
-        ++num_events;
-      }
-
-      accumulated_sum += preds[i];
-      accumulated_times += 1;
-
       if (i == ndata-1 || std::abs(info.labels[i]) < std::abs(info.labels[i+1])) {
-        exp_p_sum -= accumulated_sum;
-        accumulated_sum = 0;
-        accumulated_times = 1;
         accumulated_failures_sum = 0;
         accumulated_failures = 0;
         bst_omp_uint j = i + 1;
@@ -432,6 +420,25 @@ struct EvalCoxEfron : public Metric {
           }
           ++j;
         }
+      }
+
+      if (info.labels[i] > 0) {
+        if (accumulated_failures != 0) {
+         out -= log(preds[i]) - log(exp_p_sum-((accumulated_times-1)/accumulated_failures)*accumulated_failures_sum);
+         ++num_events;
+        } else {
+         out -= log(preds[i]) - log(exp_p_sum);
+         ++num_events;
+        }
+      }
+
+      accumulated_sum += preds[i];
+      accumulated_times += 1;
+
+      if (i == ndata-1 || std::abs(info.labels[i]) < std::abs(info.labels[i+1])) {
+        exp_p_sum -= accumulated_sum;
+        accumulated_sum = 0;
+        accumulated_times = 1;
       }
     }
     return out/num_events;
