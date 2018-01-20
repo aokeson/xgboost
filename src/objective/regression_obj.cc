@@ -438,7 +438,6 @@ class CoxEfronRegression : public ObjFunction {
     double last_exp_p = 0.0;
     double last_y = 0.0;
     double last_abs_y = 0.0;
-    double coeff = 0;
     for (omp_ulong i = 0; i < ndata; ++i) { // NOLINT(*)
 
       const double p = preds[i];
@@ -449,24 +448,29 @@ class CoxEfronRegression : public ObjFunction {
       accumulated_sum += last_exp_p;
       if (last_y > 0) {
         accumulated_failures_sum += last_exp_p;
-        accumulated_failures += 1;
       }
       if (last_abs_y < std::abs(y)) {
         exp_p_sum -= accumulated_sum;
         accumulated_sum = 0;
         accumulated_failures_sum = 0;
         accumulated_failures = 0;
+        accumulated_times = 1;
         omp_ulong j = i;
         while (j<ndata && std::abs(y)==std::abs(info.labels[j])) {
           if (info.labels[j]>0) {
             ++accumulated_failures;
+            accumulated_failures_sum += std::exp(preds[j]);
           }
           ++j;
         }
+      } if (last_abs_y == std::abs(y)) {
         accumulated_times += 1;
       }
-
-      coeff = (accumulated_times-1)/accumulated_failures;
+      
+      double coeff = 0.0;
+      if (accumulated_failures != 0) {
+        coeff = (accumulated_times-1)/accumulated_failures;
+      }
       if (y > 0) {
         double denom = exp_p_sum-(coeff*accumulated_failures_sum);
         r_k += 1.0/denom;
