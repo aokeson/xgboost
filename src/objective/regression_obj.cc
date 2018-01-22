@@ -446,15 +446,15 @@ class CoxEfronRegression : public ObjFunction {
       const double y = info.labels[i];
       
       accumulated_sum += last_exp_p;
-      if (last_y > 0) {
-        accumulated_failures_sum += last_exp_p;
-      }
+      //if (last_y > 0) {
+      //  accumulated_failures_sum += last_exp_p;
+      //}
       if (last_abs_y < std::abs(y)) {
         exp_p_sum -= accumulated_sum;
         accumulated_sum = 0;
         accumulated_failures_sum = 0;
         accumulated_failures = 0;
-        accumulated_times = 1;
+        ++accumulated_times;
         omp_ulong j = i;
         while (j<ndata && std::abs(y)==std::abs(info.labels[j])) {
           if (info.labels[j]>0) {
@@ -463,9 +463,9 @@ class CoxEfronRegression : public ObjFunction {
           }
           ++j;
         }
-      } if (last_abs_y == std::abs(y)) {
-        accumulated_times += 1;
-      }
+      //} if (last_abs_y == std::abs(y)) {
+      //  accumulated_times += 1;
+      //}
       
       double coeff = 0.0;
       if (accumulated_failures != 0) {
