@@ -412,6 +412,7 @@ struct EvalCoxEfron : public Metric {
       if (i == ndata-1 || std::abs(info.labels[i]) < std::abs(info.labels[i+1])) {
         accumulated_failures_sum = 0;
         accumulated_failures = 0;
+        ++accumulated_times;
         bst_omp_uint j = i + 1;
         while (j < ndata && info.labels[i+1]==info.labels[j]) {
           if (info.labels[j] > 0) {
@@ -433,12 +434,12 @@ struct EvalCoxEfron : public Metric {
       }
 
       accumulated_sum += preds[i];
-      accumulated_times += 1;
+      //accumulated_times += 1;
 
       if (i == ndata-1 || std::abs(info.labels[i]) < std::abs(info.labels[i+1])) {
         exp_p_sum -= accumulated_sum;
         accumulated_sum = 0;
-        accumulated_times = 1;
+        //accumulated_times = 1;
       }
     }
     return out/num_events;
