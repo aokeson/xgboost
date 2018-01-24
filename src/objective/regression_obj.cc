@@ -463,6 +463,7 @@ class CoxEfronRegression : public ObjFunction {
           }
           ++j;
         }
+      }
       //} if (last_abs_y == std::abs(y)) {
       //  accumulated_times += 1;
       //}
