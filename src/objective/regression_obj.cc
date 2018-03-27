@@ -363,8 +363,10 @@ class CoxBreslowRegression : public ObjFunction {
         s_k += 1.0/(exp_p_sum*exp_p_sum);
       }
       
-      const double grad = (exp_p*r_k - static_cast<double>(y > 0))/(std::abs(y)+1);
-      const double hess = (exp_p*r_k - exp_p*exp_p * s_k)/(std::abs(y)+1);
+      //const double grad = (exp_p*r_k - static_cast<double>(y > 0))/(std::abs(y)+1);
+      //const double hess = (exp_p*r_k - exp_p*exp_p * s_k)/(std::abs(y)+1);
+      const double grad = (exp_p*r_k - static_cast<double>(y > 0));
+      const double hess = (exp_p*r_k - exp_p*exp_p * s_k);
 
       if (std::abs(y) >= last_abs_y) {
         out_gpair->at(i) = bst_gpair(grad * w, hess * w);
@@ -478,8 +480,10 @@ class CoxEfronRegression : public ObjFunction {
         s_k += 1.0/(denom*denom);
       }
       
-      const double grad = ((1-coeff)*exp_p*r_k - static_cast<double>(y > 0))/(std::abs(y)+1);
-      const double hess = ((1-coeff)*exp_p*r_k - (1-coeff)*(1-coeff)*exp_p*exp_p * s_k)/(std::abs(y)+1);
+      //const double grad = ((1-coeff)*exp_p*r_k - static_cast<double>(y > 0))/(std::abs(y)+1);
+      //const double hess = ((1-coeff)*exp_p*r_k - (1-coeff)*(1-coeff)*exp_p*exp_p * s_k)/(std::abs(y)+1);
+      const double grad = ((1-coeff)*exp_p*r_k - static_cast<double>(y > 0));
+      const double hess = ((1-coeff)*exp_p*r_k - (1-coeff)*(1-coeff)*exp_p*exp_p * s_k);
 
       if (std::abs(y) >= last_abs_y) {
         out_gpair->at(i) = bst_gpair(grad * w, hess * w);
